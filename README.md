@@ -9,3 +9,4 @@ A slimmed down version of Codeigniter 3.0-dev with some formatting changes.
 - Simple integration with Bootstrap
 - All code comments have been removed
 - Lots of code formatting (mostly condensing)
+- Moved cache and log folders
