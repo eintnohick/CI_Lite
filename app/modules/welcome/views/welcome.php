@@ -3,7 +3,7 @@
 		<div class="col-sm-10 col-sm-offset-1">
 			<div class="jumbotron text-center">
 				<h1>Welcome to <em>CI_Lite</em>!</h1>
-				<p>CI_Lite is a slimmed down version of <a href="https://github.com/EllisLab/CodeIgniter">Codeigniter 3.0-dev</a>.</p>
+				<p>CI_Lite is a slimmed down version of <a href="https://github.com/EllisLab/CodeIgniter">Codeigniter <?php echo CI_VERSION; ?></a>.</p>
 				<p><a href="<?php echo site_url('module'); ?>" class="btn btn-danger btn-lg">View Modules &raquo;</a></p>
 			</div>
 			<div class="text-center">

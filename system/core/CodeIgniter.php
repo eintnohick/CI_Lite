@@ -2,26 +2,37 @@
 /**
  * CodeIgniter
  *
- * An open source application development framework for PHP 5.2.4 or newer
+ * An open source application development framework for PHP
  *
- * NOTICE OF LICENSE
+ * This content is released under the MIT License (MIT)
  *
- * Licensed under the Open Software License version 3.0
+ * Copyright (c) 2014 - 2016, British Columbia Institute of Technology
  *
- * This source file is subject to the Open Software License (OSL 3.0) that is
- * bundled with this package in the files license.txt / license.rst.  It is
- * also available through the world wide web at this URL:
- * http://opensource.org/licenses/OSL-3.0
- * If you did not receive a copy of the license and are unable to obtain it
- * through the world wide web, please send an email to
- * licensing@ellislab.com so we can send you a copy immediately.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * @package		CodeIgniter
- * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (http://ellislab.com/)
- * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
- * @link		http://codeigniter.com
- * @since		Version 1.0
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * @package	CodeIgniter
+ * @author	EllisLab Dev Team
+ * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
+ * @copyright	Copyright (c) 2014 - 2016, British Columbia Institute of Technology (http://bcit.ca/)
+ * @license	http://opensource.org/licenses/MIT	MIT License
+ * @link	https://codeigniter.com
+ * @since	Version 1.0.0
  * @filesource
  */
 defined('BASEPATH') OR exit('No direct script access allowed');
@@ -35,7 +46,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @subpackage	CodeIgniter
  * @category	Front-controller
  * @author		EllisLab Dev Team
- * @link		http://codeigniter.com/user_guide/
+ * @link		https://codeigniter.com/user_guide/
  */
 
 /**
@@ -44,7 +55,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @var	string
  *
  */
-	define('CI_VERSION', '3.0-dev');
+	define('CI_VERSION', '3.2.0-dev');
 
 /*
  * ------------------------------------------------------
@@ -121,7 +132,8 @@ if ( ! is_php('5.4'))
  *  Define a custom error handler so we can log PHP errors
  * ------------------------------------------------------
  */
-	set_error_handler('_exception_handler');
+	set_error_handler('_error_handler');
+	set_exception_handler('_exception_handler');
 	register_shutdown_function('_shutdown_handler');
 
 /*
@@ -133,7 +145,7 @@ if ( ! is_php('5.4'))
  * The subclass prefix allows CI to know if a core class is
  * being extended via a library in the local application
  * "libraries" folder. Since CI allows config items to be
- * overriden via data set in the main index.php file,
+ * overridden via data set in the main index.php file,
  * before proceeding we need to know if a subclass_prefix
  * override exists. If so, we will set this value now,
  * before any classes are loaded
@@ -143,6 +155,29 @@ if ( ! is_php('5.4'))
 	if ( ! empty($assign_to_config['subclass_prefix']))
 	{
 		get_config(array('subclass_prefix' => $assign_to_config['subclass_prefix']));
+	}
+
+/*
+ * ------------------------------------------------------
+ *  Should we use a Composer autoloader?
+ * ------------------------------------------------------
+ */
+	if ($composer_autoload = config_item('composer_autoload'))
+	{
+		if ($composer_autoload === TRUE)
+		{
+			file_exists(APPPATH.'vendor/autoload.php')
+				? require_once(APPPATH.'vendor/autoload.php')
+				: log_message('error', '$config[\'composer_autoload\'] is set to TRUE but '.APPPATH.'vendor/autoload.php was not found.');
+		}
+		elseif (file_exists($composer_autoload))
+		{
+			require_once($composer_autoload);
+		}
+		else
+		{
+			log_message('error', 'Could not find the specified $config[\'composer_autoload\'] path: '.$composer_autoload);
+		}
 	}
 
 /*
@@ -263,7 +298,7 @@ if ( ! is_php('5.4'))
  *  Instantiate the URI class
  * ------------------------------------------------------
  */
-	$URI =& load_class('URI', 'core');
+	$URI =& load_class('URI', 'core', $CFG);
 
 /*
  * ------------------------------------------------------
@@ -324,7 +359,7 @@ if ( ! is_php('5.4'))
 	 *
 	 * Returns current CI instance object
 	 *
-	 * @return object
+	 * @return CI_Controller
 	 */
 	function &get_instance()
 	{
@@ -381,11 +416,7 @@ if ( ! is_php('5.4'))
 			$params = array($method, array_slice($URI->rsegments, 2));
 			$method = '_remap';
 		}
-		// WARNING: It appears that there are issues with is_callable() even in PHP 5.2!
-		// Furthermore, there are bug reports and feature/change requests related to it
-		// that make it unreliable to use in this context. Please, DO NOT change this
-		// work-around until a better alternative is available.
-		elseif ( ! in_array(strtolower($method), array_map('strtolower', get_class_methods($class)), TRUE))
+		elseif ( ! is_callable(array($class, $method)))
 		{
 			$e404 = TRUE;
 		}
@@ -449,23 +480,6 @@ if ( ! is_php('5.4'))
 
 /*
  * ------------------------------------------------------
- *  Should we use a Composer autoloader?
- * ------------------------------------------------------
- */
-	if (($composer_autoload = config_item('composer_autoload')) !== FALSE)
-	{
-		if ($composer_autoload === TRUE && file_exists(APPPATH.'vendor/autoload.php'))
-		{
-			require_once(APPPATH.'vendor/autoload.php');
-		}
-		elseif (file_exists($composer_autoload))
-		{
-			require_once($composer_autoload);
-		}
-	}
-
-/*
- * ------------------------------------------------------
  *  Is there a "pre_controller" hook?
  * ------------------------------------------------------
  */
@@ -521,6 +535,3 @@ if ( ! is_php('5.4'))
  * ------------------------------------------------------
  */
 	$EXT->call_hook('post_system');
-
-/* End of file CodeIgniter.php */
-/* Location: ./system/core/CodeIgniter.php */
